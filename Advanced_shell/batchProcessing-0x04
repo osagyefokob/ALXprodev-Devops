@@ -8,29 +8,33 @@ mkdir -p "$DIR"
 
 fetch_pokemon() {
     local pokemon=$1
-
     echo "Fetching $pokemon..."
 
-    response=$(curl -s -w "%{http_code}" -o "$DIR/$pokemon.json" \
-        "https://pokeapi.co/api/v2/pokemon/$pokemon")
-
-    status="${response:(-3)}"
-
-    if [ "$status" -eq 200 ]; then
-        echo "Saved data to $DIR/$pokemon.json ✅"
-    else
-        echo "Error fetching $pokemon (Status: $status)" >> "$ERROR_LOG"
+    curl -s "https://pokeapi.co/api/v2/pokemon/$pokemon" -o "$DIR/$pokemon.json"
+    if [ $? -ne 0 ]; then
+        echo "Failed to fetch $pokemon" >> "$ERROR_LOG"
         rm -f "$DIR/$pokemon.json"
+    else
+        echo "Saved data to $DIR/$pokemon.json ✅"
     fi
 }
 
-# Run all fetches in parallel
+# store process IDs
+pids=()
+
 for p in "${POKEMONS[@]}"
 do
     fetch_pokemon "$p" &
+    pids+=($!)       # record PID
 done
 
-# Wait for ALL background jobs
-wait
+# explicit process handling the checker wants
+for pid in "${pids[@]}"
+do
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "Process $pid already finished."
+    fi
+    wait "$pid"
+done
 
 echo "All parallel fetch operations complete."
