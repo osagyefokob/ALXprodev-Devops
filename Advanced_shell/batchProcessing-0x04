@@ -1,0 +1,36 @@
+#!/bin/bash
+
+POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+DIR="pokemon_data_parallel"
+ERROR_LOG="errors_parallel.txt"
+
+mkdir -p "$DIR"
+
+fetch_pokemon() {
+    local pokemon=$1
+
+    echo "Fetching $pokemon..."
+
+    response=$(curl -s -w "%{http_code}" -o "$DIR/$pokemon.json" \
+        "https://pokeapi.co/api/v2/pokemon/$pokemon")
+
+    status="${response:(-3)}"
+
+    if [ "$status" -eq 200 ]; then
+        echo "Saved data to $DIR/$pokemon.json ✅"
+    else
+        echo "Error fetching $pokemon (Status: $status)" >> "$ERROR_LOG"
+        rm -f "$DIR/$pokemon.json"
+    fi
+}
+
+# Run all fetches in parallel
+for p in "${POKEMONS[@]}"
+do
+    fetch_pokemon "$p" &
+done
+
+# Wait for ALL background jobs
+wait
+
+echo "All parallel fetch operations complete."
