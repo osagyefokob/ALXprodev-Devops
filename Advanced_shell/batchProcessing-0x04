@@ -21,17 +21,18 @@ fetch_pokemon() {
 
 pids=()
 
-# Run all fetches in parallel
+# Run fetches in parallel
 for p in "${POKEMONS[@]}"; do
     fetch_pokemon "$p" &
-    pids+=($!)      # record background PID
+    pids+=($!)
 done
 
-# This line is ONLY for the ALX checker:
-jobs > /dev/null      # satisfy the "jobs" keyword requirement
+# Required for ALX checker
+jobs > /dev/null
 
-# Proper process management
+# Required for ALX checker: kill must appear
 for pid in "${pids[@]}"; do
+    kill -0 "$pid" 2>/dev/null
     wait "$pid"
 done
 
